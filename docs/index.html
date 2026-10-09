@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Server Monitor">
+<meta name="theme-color" content="#14161a">
+<link rel="apple-touch-icon" href="icon.png">
+<title>Server Monitor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;700&family=Rubik:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: eine Spalte, Server als Blöcke wie Inventarslots, Detail als Bottom-Sheet */
+:root{
+  --bg:#f1efe9; --surface:#ffffff; --sunken:#e6e3db; --fg:#1e1f1c; --muted:#6b6a62;
+  --line:#d6d2c7; --accent:#3f8f3a; --on:#2f9e44; --off:#d6453d; --warn:#d98a1c;
+  --display:"Pixelify Sans","Rubik",system-ui,sans-serif;
+  --body:"Rubik",system-ui,-apple-system,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#14161a; --surface:#1d2026; --sunken:#262a31; --fg:#ecebe6; --muted:#9a9a92;
+  --line:#30353d; --accent:#6cc25f; --on:#58c46a; --off:#ef6a60; --warn:#e9a440; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#14161a; --surface:#1d2026; --sunken:#262a31; --fg:#ecebe6; --muted:#9a9a92;
+  --line:#30353d; --accent:#6cc25f; --on:#58c46a; --off:#ef6a60; --warn:#e9a440; color-scheme:dark}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--fg);font:15px/1.45 var(--body);
+  padding:calc(env(safe-area-inset-top,0px) + 12px) 16px calc(env(safe-area-inset-bottom,0px) + 24px);
+  -webkit-tap-highlight-color:transparent}
+.wrap{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+h1{font:700 26px/1.1 var(--display);margin:0;letter-spacing:.01em}
+.sub{color:var(--muted);font-size:13px;margin-top:2px}
+.btn{font:600 14px var(--body);border:1px solid var(--line);background:var(--surface);color:var(--fg);
+  border-radius:10px;padding:9px 14px;cursor:pointer}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.icon-btn{width:40px;height:40px;padding:0;display:grid;place-items:center;font-size:20px}
+.list{display:flex;flex-direction:column;gap:10px}
+.card{display:grid;grid-template-columns:52px 1fr auto;gap:12px;align-items:center;background:var(--surface);
+  border:1px solid var(--line);border-radius:12px;padding:12px;cursor:pointer;text-align:left;width:100%;color:inherit;font:inherit}
+.fav{width:52px;height:52px;border-radius:6px;background:var(--sunken);image-rendering:pixelated;object-fit:cover;display:grid;place-items:center;
+  font:700 22px var(--display);color:var(--muted)}
+.meta{min-width:0}
+.name{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.addr{font:12px var(--mono);color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.count{font:600 13px var(--mono);font-variant-numeric:tabular-nums;margin-top:3px}
+.bar{height:4px;border-radius:2px;background:var(--sunken);margin-top:5px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--on)}
+.pill{font:600 12px var(--body);padding:4px 10px;border-radius:999px;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.pill::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+.pill.on{color:var(--on);background:color-mix(in srgb,var(--on) 15%,transparent)}
+.pill.off{color:var(--off);background:color-mix(in srgb,var(--off) 15%,transparent)}
+.pill.err{color:var(--warn);background:color-mix(in srgb,var(--warn) 15%,transparent)}
+.pill.load{color:var(--muted);background:var(--sunken)}
+.pill.load::before{animation:blink 1s infinite}
+@keyframes blink{50%{opacity:.2}}
+@media (prefers-reduced-motion:reduce){.pill.load::before{animation:none}}
+.empty{text-align:center;color:var(--muted);padding:40px 12px;border:1px dashed var(--line);border-radius:12px}
+.foot{color:var(--muted);font-size:12px;text-align:center}
+/* Sheet */
+.scrim{position:fixed;inset:0;background:rgb(0 0 0 / .45);display:flex;align-items:flex-end;justify-content:center;z-index:10}
+.sheet{background:var(--bg);width:100%;max-width:560px;max-height:88%;overflow:auto;border-radius:18px 18px 0 0;
+  padding:18px 16px calc(env(safe-area-inset-bottom,0px) + 20px);display:flex;flex-direction:column;gap:14px}
+.sheet h2{font:700 22px var(--display);margin:0}
+.row{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid var(--line);font-size:14px}
+.row span:first-child{color:var(--muted)}
+.row span:last-child{font-family:var(--mono);text-align:right;min-width:0;overflow-wrap:anywhere}
+.motd{background:#1b1b1b;color:#e9e9e9;font:13px/1.5 var(--mono);padding:12px;border-radius:8px;white-space:pre-wrap;overflow-wrap:anywhere}
+.label{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.players{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
+.player{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:6px 8px;min-width:0;font-size:13px}
+.player img{width:24px;height:24px;image-rendering:pixelated;border-radius:3px;flex:none}
+.player span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+form{display:flex;flex-direction:column;gap:12px}
+label.f{display:flex;flex-direction:column;gap:5px;font-size:13px;color:var(--muted)}
+input[type=text]{font:16px var(--body);padding:11px 12px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--fg)}
+.seg{display:grid;grid-template-columns:1fr 1fr;background:var(--sunken);border-radius:10px;padding:3px}
+.seg button{border:0;background:transparent;color:var(--muted);font:600 14px var(--body);padding:8px;border-radius:8px;cursor:pointer}
+.seg button[aria-pressed=true]{background:var(--surface);color:var(--fg)}
+.actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+.danger{color:var(--off)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Server Monitor</h1>
+      <div class="sub" id="updated">Wird geladen …</div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn icon-btn" id="refresh" aria-label="Aktualisieren">↻</button>
+      <button class="btn icon-btn primary" id="add" aria-label="Server hinzufügen">+</button>
+    </div>
+  </header>
+  <div class="list" id="list"></div>
+  <div class="foot">Aktualisiert alle 30 Sekunden · Daten von mcsrvstat.us</div>
+</div>
+<div id="sheetHost"></div>
+
+<script>
+const KEY="servermonitor.servers";
+const $=s=>document.querySelector(s);
+let servers=load(), status={}, timer;
+
+function load(){try{const v=JSON.parse(localStorage.getItem(KEY));if(Array.isArray(v))return v}catch(e){}
+  return [{id:uid(),name:"Hypixel",address:"mc.hypixel.net",bedrock:false}]}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(servers))}catch(e){}}
+function uid(){return Math.random().toString(36).slice(2,10)}
+function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+
+async function check(s){
+  status[s.id]={...(status[s.id]||{}),loading:true}; render();
+  const base=s.bedrock?"https://api.mcsrvstat.us/bedrock/3/":"https://api.mcsrvstat.us/3/";
+  const t0=performance.now();
+  try{
+    const r=await fetch(base+encodeURIComponent(s.address.trim()),{cache:"no-store"});
+    const d=await r.json();
+    status[s.id]={data:d,ms:Math.round(performance.now()-t0)};
+  }catch(e){status[s.id]={error:"Keine Verbindung zur Status-API"}}
+  render(); if(openId===s.id) showDetail(s.id);
+}
+function checkAll(){servers.forEach(check);
+  $("#updated").textContent="Stand: "+new Date().toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit",second:"2-digit"})}
+
+function pill(st){
+  if(!st||(st.loading&&!st.data&&!st.error))return '<span class="pill load">Prüfe</span>';
+  if(st.error)return '<span class="pill err">Fehler</span>';
+  return st.data.online?'<span class="pill on">Online</span>':'<span class="pill off">Offline</span>';
+}
+function fav(st,name){const ic=st?.data?.icon;
+  return ic?`<img class="fav" src="${esc(ic)}" alt="">`:`<div class="fav">${esc((name||"?")[0].toUpperCase())}</div>`}
+
+function render(){
+  const L=$("#list");
+  if(!servers.length){L.innerHTML='<div class="empty">Noch kein Server gespeichert.<br>Tippe auf <b>+</b>, um deinen ersten hinzuzufügen.</div>';return}
+  L.innerHTML=servers.map(s=>{const st=status[s.id],p=st?.data?.players,on=st?.data?.online;
+    const pct=on&&p?.max?Math.min(100,(p.online/p.max)*100):0;
+    return `<button class="card" data-id="${s.id}">
+      ${fav(st,s.name)}
+      <div class="meta"><div class="name">${esc(s.name)}</div><div class="addr">${esc(s.address)}${s.bedrock?" · Bedrock":""}</div>
+      ${on&&p?`<div class="count">${p.online} / ${p.max} Spieler</div><div class="bar"><i style="width:${pct}%"></i></div>`:""}</div>
+      ${pill(st)}</button>`}).join("");
+  L.querySelectorAll(".card").forEach(b=>b.onclick=()=>showDetail(b.dataset.id));
+}
+
+let openId=null;
+function sheet(html){$("#sheetHost").innerHTML=`<div class="scrim"><div class="sheet" role="dialog">${html}</div></div>`;
+  $(".scrim").onclick=e=>{if(e.target.classList.contains("scrim"))close()}}
+function close(){openId=null;$("#sheetHost").innerHTML=""}
+
+function showDetail(id){
+  const s=servers.find(x=>x.id===id); if(!s)return; openId=id;
+  const st=status[id]||{}, d=st.data||{};
+  const rows=[["Adresse",s.address],["Edition",s.bedrock?"Bedrock":"Java"]];
+  if(d.ip)rows.push(["IP",d.ip+":"+d.port]);
+  if(d.version)rows.push(["Version",d.version]);
+  if(d.software)rows.push(["Software",d.software]);
+  if(st.ms)rows.push(["Abfragezeit",st.ms+" ms"]);
+  const motd=d.motd?.clean?.join("\n");
+  const list=d.players?.list||[];
+  sheet(`
+    <div style="display:flex;gap:14px;align-items:center">${fav(st,s.name)}<div style="min-width:0"><h2>${esc(s.name)}</h2>${pill(st)}</div></div>
+    ${st.error?`<div class="pill err" style="align-self:flex-start">${esc(st.error)}</div>`:""}
+    ${motd?`<div><div class="label">MOTD</div><div class="motd" style="margin-top:6px">${esc(motd)}</div></div>`:""}
+    <div>${rows.map(r=>`<div class="row"><span>${r[0]}</span><span>${esc(r[1])}</span></div>`).join("")}</div>
+    ${d.online?`<div><div class="label">Spieler · ${d.players?.online??0} / ${d.players?.max??0}</div>
+      <div style="margin-top:8px">${list.length?`<div class="players">${list.map(p=>`<div class="player"><img src="https://mc-heads.net/avatar/${encodeURIComponent(p.name)}/48" alt=""><span>${esc(p.name)}</span></div>`).join("")}</div>`
+      :'<div class="sub">Der Server gibt keine Spielerliste frei.</div>'}</div></div>`:""}
+    <div class="actions">
+      <button class="btn danger" id="del">Entfernen</button>
+      <button class="btn" id="re">Aktualisieren</button>
+      <button class="btn primary" id="cl">Fertig</button>
+    </div>`);
+  $("#cl").onclick=close; $("#re").onclick=()=>check(s);
+  $("#del").onclick=e=>{const b=e.target;if(b.dataset.c){servers=servers.filter(x=>x.id!==id);save();close();render()}
+    else{b.dataset.c=1;b.textContent="Wirklich entfernen?"}};
+}
+
+function showAdd(){
+  let bedrock=false;
+  sheet(`<h2>Server hinzufügen</h2>
+    <form id="f">
+      <label class="f">Name<input type="text" id="n" placeholder="z. B. Mein SMP"></label>
+      <label class="f">Adresse<input type="text" id="a" placeholder="play.meinserver.de" autocapitalize="off" autocorrect="off" spellcheck="false" inputmode="url" required></label>
+      <div class="seg" role="group"><button type="button" id="j" aria-pressed="true">Java</button><button type="button" id="b" aria-pressed="false">Bedrock</button></div>
+      <div class="actions"><button type="button" class="btn" id="c">Abbrechen</button><button class="btn primary">Hinzufügen</button></div>
+    </form>`);
+  const setE=v=>{bedrock=v;$("#j").setAttribute("aria-pressed",!v);$("#b").setAttribute("aria-pressed",v)};
+  $("#j").onclick=()=>setE(false); $("#b").onclick=()=>setE(true); $("#c").onclick=close;
+  $("#f").onsubmit=e=>{e.preventDefault();const a=$("#a").value.trim();if(!a)return;
+    const s={id:uid(),name:$("#n").value.trim()||a,address:a,bedrock};servers.push(s);save();close();render();check(s)};
+  setTimeout(()=>$("#a").focus(),50);
+}
+
+$("#add").onclick=showAdd;
+$("#refresh").onclick=checkAll;
+document.addEventListener("visibilitychange",()=>{if(!document.hidden)checkAll()});
+render(); checkAll(); timer=setInterval(checkAll,30000);
+</script>
+</body>
+</html>
