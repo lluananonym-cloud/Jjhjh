@@ -1,0 +1,23 @@
+name: ServerMonitor
+options:
+  bundleIdPrefix: com.minepro641
+  deploymentTarget:
+    iOS: "16.0"
+targets:
+  ServerMonitor:
+    type: application
+    platform: iOS
+    sources: [ServerMonitor]
+    info:
+      path: ServerMonitor/Info.plist
+      properties:
+        CFBundleDisplayName: Server Monitor
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.minepro641.servermonitor
+        MARKETING_VERSION: "1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        CODE_SIGNING_ALLOWED: "NO"
+        TARGETED_DEVICE_FAMILY: "1"
