@@ -2,7 +2,7 @@ name: ServerMonitor
 options:
   bundleIdPrefix: com.minepro641
   deploymentTarget:
-    iOS: "16.0"
+    iOS: "17.0"
 targets:
   ServerMonitor:
     type: application
