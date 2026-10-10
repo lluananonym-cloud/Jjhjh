@@ -1,0 +1,6 @@
+{
+  "name": "mythoscraft-afk-bot",
+  "private": true,
+  "type": "commonjs",
+  "dependencies": { "mineflayer": "4.23.0" }
+}
