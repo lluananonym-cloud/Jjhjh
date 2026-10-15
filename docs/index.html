@@ -86,6 +86,11 @@ input[type=text]{font:16px var(--body);padding:11px 12px;border-radius:10px;bord
 .seg button[aria-pressed=true]{background:var(--surface);color:var(--fg)}
 .actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
 .danger{color:var(--off)}
+.botbox{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px}
+.botbox .t{font-weight:600}
+.botbox .s{font-size:12px;color:var(--muted)}
+a.btn{text-decoration:none;display:inline-flex;align-items:center;white-space:nowrap}
+.mini{font:600 11px var(--body);color:var(--accent);margin-left:6px}
 </style>
 </head>
 <body>
@@ -107,6 +112,9 @@ input[type=text]{font:16px var(--body);padding:11px 12px;border-radius:10px;bord
 
 <script>
 const KEY="servermonitor.servers";
+const BOT_NAME="MythosBot";
+const BOT_URL="https://github.com/lluananonym-cloud/Jjhjh/actions/workflows/afk-bot.yml";
+function botOnline(st){return !!st?.data?.players?.list?.some(p=>p.name.toLowerCase()===BOT_NAME.toLowerCase())}
 const $=s=>document.querySelector(s);
 let servers=load(), status={}, timer;
 
@@ -145,7 +153,7 @@ function render(){
     const pct=on&&p?.max?Math.min(100,(p.online/p.max)*100):0;
     return `<button class="card" data-id="${s.id}">
       ${fav(st,s.name)}
-      <div class="meta"><div class="name">${esc(s.name)}</div><div class="addr">${esc(s.address)}${s.bedrock?" · Bedrock":""}</div>
+      <div class="meta"><div class="name">${esc(s.name)}${botOnline(st)?'<span class="mini">● Bot</span>':""}</div><div class="addr">${esc(s.address)}${s.bedrock?" · Bedrock":""}</div>
       ${on&&p?`<div class="count">${p.online} / ${p.max} Spieler</div><div class="bar"><i style="width:${pct}%"></i></div>`:""}</div>
       ${pill(st)}</button>`}).join("");
   L.querySelectorAll(".card").forEach(b=>b.onclick=()=>showDetail(b.dataset.id));
@@ -174,6 +182,11 @@ function showDetail(id){
     ${d.online?`<div><div class="label">Spieler · ${d.players?.online??0} / ${d.players?.max??0}</div>
       <div style="margin-top:8px">${list.length?`<div class="players">${list.map(p=>`<div class="player"><img src="https://mc-heads.net/avatar/${encodeURIComponent(p.name)}/48" alt=""><span>${esc(p.name)}</span></div>`).join("")}</div>`
       :'<div class="sub">Der Server gibt keine Spielerliste frei.</div>'}</div></div>`:""}
+    <div class="botbox">
+      <div><div class="t">AFK-Bot ${BOT_NAME}</div>
+      <div class="s">${botOnline(st)?"Ist gerade auf dem Server":d.online?"Nicht auf dem Server":"Server ist offline"}</div></div>
+      <a class="btn primary" href="${BOT_URL}" target="_blank" rel="noopener">Bot starten</a>
+    </div>
     <div class="actions">
       <button class="btn danger" id="del">Entfernen</button>
       <button class="btn" id="re">Aktualisieren</button>
