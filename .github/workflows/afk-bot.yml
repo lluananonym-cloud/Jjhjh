@@ -9,7 +9,7 @@ concurrency:
 jobs:
   bot:
     runs-on: ubuntu-latest
-    timeout-minutes: 28
+    timeout-minutes: 355
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -21,8 +21,9 @@ jobs:
       - name: Run bot
         working-directory: bot
         env:
-          MC_HOST: mythoscraft.mcsh.io
+          MC_HOST: ${{ vars.MC_HOST }}
+          MC_PORT: ${{ vars.MC_PORT || '25565' }}
           BOT_NAME: MythosBot
-          STAY_MINUTES: "25"
+          STAY_MINUTES: "350"
           AUTHME_PASSWORD: ${{ secrets.AUTHME_PASSWORD }}
         run: node bot.js
